@@ -22,24 +22,11 @@ module Batchbase
     #   require 'rubygems'
     #   require 'batchbase'
     #
-    #   include Batchbase::Base
+    #   include Batchbase::Core
     #
     #   execute() do
     #     info "batch process01"
     #   end
-    #
-    # railsのscript/runnerで使用する場合はscript/runnerを以下の感じでいじってから使用してください
-    #
-    #   #!/usr/bin/env ruby
-    # 
-    #   #original add start
-    #   ARGV_ORIGINAL = ARGV.clone
-    #   ARGV.delete("-h")
-    #   ARGV.delete("--help")
-    #   #original add end
-    # 
-    #   require File.dirname(__FILE__) + '/../config/boot'
-    #   require 'commands/runner'
     #
     def execute(options={},&process)
 
@@ -63,7 +50,7 @@ module Batchbase
 
       if Module.constants.include?("ARGV_ORIGINAL")
 
-        Keystone::Base::Logger.instance.debug "ARGV_ORIGINAL found!!"
+        Batchbase::Logformatter.instance.debug "ARGV_ORIGINAL found!!"
 
         ARGV << "-h" if ARGV_ORIGINAL.include?("-h")
         ARGV << "--help" if ARGV_ORIGINAL.include?("--help")
@@ -71,12 +58,12 @@ module Batchbase
         pg_path = File.expand_path(script_name)
         opts.banner = "Usage: script/runner #{script_name} [options]"
 
-        Keystone::Base::Logger.instance.debug "pg_path=#{pg_path}"
+        Batchbase::Logformatter.debug "pg_path=#{pg_path}"
         opts.on("-e", "--environment=name", 
                 String,"specifies the environment for the runner to operate under (test/development/production).",
           "default: development")
       else
-        Keystone::Base::Logger.instance.debug "caller=#{caller}"
+        Batchbase::Logformatter.instance.debug "caller=#{caller}"
         pg_path = if File.expand_path(caller[0]) =~ /(.*):\d*:in `.*?'\z/
                     $1
                   else
@@ -119,7 +106,7 @@ module Batchbase
 
       opts.parse!(ARGV)
 
-      Keystone::Base::Logger.instance.info "start script(#{pg_path})"
+      Batchbase::Logformatter.instance.info "start script(#{pg_path})"
       script_started_at = Time.now
       double_process_check_worked = false
       begin
@@ -129,17 +116,17 @@ module Batchbase
           pg_name = File.basename(pg_path)
           hash = Digest::MD5.hexdigest(pg_path)
           pid_file = "/tmp/.#{pg_name}.#{hash}.pid" unless pid_file
-          Keystone::Base::Logger.instance.debug pid_file
+          Batchbase::Logformatter.instance.debug pid_file
           if File.exists?(pid_file)
             pid = File.open(pid_file).read.chomp
             pid_list = `ps ax | awk '{print $1}'`
             if (pid != nil && pid != "" ) && pid_list =~ /#{pid}/
-              Keystone::Base::Logger.instance.warn "pid:#{pid} still running"
+              Batchbase::Logformatter.instance.warn "pid:#{pid} still running"
               double_process_check_worked = true
               return nil
             else
               if auto_recover
-                Keystone::Base::Logger.instance.warn "lock file still exists[pid=#{pid}],but process does not found.auto_recover enabled.so process continues"
+                Batchbase::Logformatter.instance.warn "lock file still exists[pid=#{pid}],but process does not found.auto_recover enabled.so process continues"
               else
                 double_process_check_worked = true
                 raise "lock file still exists[pid=#{pid}],but process does not found.auto_recover disabled.so process can not continue"
@@ -152,55 +139,14 @@ module Batchbase
         end
         return (yield process)
       rescue => e
-        Keystone::Base::Logger.instance.error e
+        Batchbase::Logformatter.instance.error e
         send_error_mail(e,options)
       ensure
         unless double_process_check_worked
           File.delete(pid_file) if double_process_check
         end
-        Keystone::Base::Logger.instance.info "finish script (%1.3fsec)" % (Time.now - script_started_at)
+        Batchbase::Logformatter.instance.info "finish script (%1.3fsec)" % (Time.now - script_started_at)
       end
     end
-
-    #
-    # = エラーメール送信メソッド
-    #  エクセプションを何も考えずにメールにて送信する
-    # 　各種メール送信属性は定数にて渡す
-    #
-    # [exception]
-    #   エクセプションクラスインスタンス
-    #
-    def send_error_mail(exception,options)
-      if options[:error_mail_to]
-        host = Keystone::Os.get()
-        title = %|[error][#{host.hostname}][#{exception.message}]|
-
-        mail_to = options[:error_mail_to]
-        mail_to = [mail_to] if mail_to.is_a?(String)
-        mail_from = options[:error_mail_from] ?  options[:error_mail_from] : mail_to[0]
-        smtp_addr = options[:error_mail_smtp_addr]
-        smtp_port = options[:error_mail_smtp_port]
-
-        Keystone::Base::Logger.instance.debug "mail_to=#{mail_to}"
-        Keystone::Base::Logger.instance.debug "mail_from=#{mail_from}"
-        Keystone::Base::Logger.instance.debug "smtp_addr=#{smtp_addr}"
-        Keystone::Base::Logger.instance.debug "smtp_port=#{smtp_port}"
-
-        body  = <<-BODY
-==== pg ====
-        #{File.expand_path($0)}
-==== error message ====
-        #{exception.message}
-====== backtrace ======
-        #{exception.backtrace.join("\n")}
-===== environment =====
-        #{host.dump}
-BODY
-        Keystone::Mail::Send.sendmail(mail_from,mail_to,title,body,smtp_addr,smtp_port)
-      else
-        Keystone::Base::Logger.instance.info "ERROR_MAIL_TO not defined.if you want error mail automatically,set this value(check execute() method option)."
-      end
-    end
-
   end
 end
