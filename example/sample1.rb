@@ -3,7 +3,7 @@ require 'rubygems'
 require 'batchbase'
 
 
-include Batchbase::Base
+include Batchbase::Core
 
 execute do
   puts test

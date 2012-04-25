@@ -1,7 +1,7 @@
 require "batchbase/version"
 
-require "batchbase/base"
-include Batchbase::Base
+require "batchbase/core"
+include Batchbase::Core
 
 module Batchbase
 end
