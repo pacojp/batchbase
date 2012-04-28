@@ -1,3 +1,6 @@
+#
+# just simple. does not care instance or singleton ,,,,,,
+#
 module Batchbase
   class LogFormatter
     def self.log(log_type,message, is_base_info = true)
@@ -29,38 +32,66 @@ module Batchbase
 
     def self.error(message)
       if message.is_a? Exception
-        log(:ERROR,"#{message.message}")
+        self.log(:ERROR,"#{message.message}")
         message.backtrace.each_with_index {|line, i|
-          log(:ERROR,"#{line})",false)
+          self.log(:ERROR,"#{line})",false)
         }
       else
-        log(:ERROR,message.to_s)
+        self.log(:ERROR,message.to_s)
       end
     end
 
-    def self.info(message)
-      log(:INFO,message)
+    def error(message)
+      self.class.error(message)
     end
 
-    def sefl.warn(message)
-      log(:WARN,message)
+    def self.info(message)
+      self.log(:INFO,message)
+    end
+
+    def info(message)
+      self.class.info(message)
+    end
+
+    def self.warn(message)
+      self.log(:WARN,message)
+    end
+
+    def warn(message)
+      self.class.warn(message)
     end
 
     def self.notice(message)
-      log(:NOTICE,message)
+      self.log(:NOTICE,message)
+    end
+
+    def notice(message)
+      self.class.notice(message)
     end
 
     def self.alert(message)
-      log(:ALERT,message)
+      self.log(:ALERT,message)
+    end
+
+    def alert(message)
+      self.class.alert(message)
     end
 
     def self.critical(message)
-      log(:CRIT,message)
+      self.log(:CRITICAL,message)
+    end
+
+    def critical(message)
+      self.class.critical(message)
     end
 
     def self.debug(message)
+      self.log(:DEBUG,message)
+    end
+
+    def debug(message)
       if $DEBUG
-        log(:DEBUG,message)
+        self.class.debug(message)
       end
     end
   end

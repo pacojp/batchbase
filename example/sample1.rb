@@ -1,10 +1,11 @@
-
 require 'rubygems'
 require 'batchbase'
 
+# usage type 1
+
 include Batchbase::Core
-@logger = Batchbase::LogFormatter
+@l = Batchbase::LogFormatter.new
 
 execute do
-  puts test
+  @l.info 'test'
 end

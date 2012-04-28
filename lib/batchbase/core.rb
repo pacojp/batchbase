@@ -10,10 +10,6 @@ module Batchbase
 
     # [options]
     #   プログラムより指定するバッチ動作オプション（ハッシュ値）
-    #   :error_mail_to
-    #   :error_mail_from
-    #   :error_mail_smtp_addr
-    #   :error_mail_smtp_port
     #   :double_process_check
     #   :auto_recover
     #
@@ -30,10 +26,6 @@ module Batchbase
     #
     def execute(options={},&process)
 
-      options[:error_mail_to] = nil unless options.key?(:error_mail_to)
-      options[:error_mail_from] = nil unless options.key?(:error_mail_from)
-      options[:error_mail_smtp_addr] = "127.0.0.1" unless options.key?(:error_mail_smtp_addr)
-      options[:error_mail_smtp_port] = 25 unless options.key?(:error_mail_smtp_port)
       options[:double_process_check] = true unless options.key?(:double_process_check)
       options[:auto_recover] = true unless options.key?(:auto_recover)
 
@@ -50,7 +42,7 @@ module Batchbase
 
       if Module.constants.include?("ARGV_ORIGINAL")
 
-        Batchbase::Logformatter.instance.debug "ARGV_ORIGINAL found!!"
+        Batchbase::LogFormatter.debug "ARGV_ORIGINAL found!!"
 
         ARGV << "-h" if ARGV_ORIGINAL.include?("-h")
         ARGV << "--help" if ARGV_ORIGINAL.include?("--help")
@@ -58,12 +50,12 @@ module Batchbase
         pg_path = File.expand_path(script_name)
         opts.banner = "Usage: script/runner #{script_name} [options]"
 
-        Batchbase::Logformatter.debug "pg_path=#{pg_path}"
+        Batchbase::LogFormatter.debug "pg_path=#{pg_path}"
         opts.on("-e", "--environment=name", 
                 String,"specifies the environment for the runner to operate under (test/development/production).",
           "default: development")
       else
-        Batchbase::Logformatter.instance.debug "caller=#{caller}"
+        Batchbase::LogFormatter.debug "caller=#{caller}"
         pg_path = if File.expand_path(caller[0]) =~ /(.*):\d*:in `.*?'\z/
                     $1
                   else
@@ -91,22 +83,10 @@ module Batchbase
       opts.on("--auto_recover_off","disable auto recover mode") do |v|
         auto_recover = false
       end
-      opts.on("--error_mail_to MAIL_ADDR") do |v|
-        options[:error_mail_to] = v
-      end
-      opts.on("--error_mail_from MAIL_ADDR") do |v|
-        options[:error_mail_from] = v
-      end
-      opts.on("--error_mail_smtp_addr IP_ADDR") do |v|
-        options[:error_mail_smtp_addr] = v
-      end
-      opts.on("--error_mail_smtp_port PORT") do |v|
-        options[:error_mail_smtp_port] = Integer(v)
-      end
 
       opts.parse!(ARGV)
 
-      Batchbase::Logformatter.instance.info "start script(#{pg_path})"
+      Batchbase::LogFormatter.info "start script(#{pg_path})"
       script_started_at = Time.now
       double_process_check_worked = false
       begin
@@ -116,17 +96,17 @@ module Batchbase
           pg_name = File.basename(pg_path)
           hash = Digest::MD5.hexdigest(pg_path)
           pid_file = "/tmp/.#{pg_name}.#{hash}.pid" unless pid_file
-          Batchbase::Logformatter.instance.debug pid_file
+          Batchbase::LogFormatter.debug pid_file
           if File.exists?(pid_file)
             pid = File.open(pid_file).read.chomp
             pid_list = `ps ax | awk '{print $1}'`
             if (pid != nil && pid != "" ) && pid_list =~ /#{pid}/
-              Batchbase::Logformatter.instance.warn "pid:#{pid} still running"
+              Batchbase::LogFormatter.warn "pid:#{pid} still running"
               double_process_check_worked = true
               return nil
             else
               if auto_recover
-                Batchbase::Logformatter.instance.warn "lock file still exists[pid=#{pid}],but process does not found.auto_recover enabled.so process continues"
+                Batchbase::LogFormatter.warn "lock file still exists[pid=#{pid}],but process does not found.auto_recover enabled.so process continues"
               else
                 double_process_check_worked = true
                 raise "lock file still exists[pid=#{pid}],but process does not found.auto_recover disabled.so process can not continue"
@@ -139,13 +119,12 @@ module Batchbase
         end
         return (yield process)
       rescue => e
-        Batchbase::Logformatter.instance.error e
-        send_error_mail(e,options)
+        Batchbase::LogFormatter.error e
       ensure
         unless double_process_check_worked
           File.delete(pid_file) if double_process_check
         end
-        Batchbase::Logformatter.instance.info "finish script (%1.3fsec)" % (Time.now - script_started_at)
+        Batchbase::LogFormatter.info "finish script (%1.3fsec)" % (Time.now - script_started_at)
       end
     end
   end
