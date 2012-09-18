@@ -86,13 +86,13 @@ module Batchbase
     end
 
     def self.debug(message)
-      self.log(:DEBUG,message)
+      if $DEBUG
+        self.log(:DEBUG,message)
+      end
     end
 
     def debug(message)
-      if $DEBUG
-        self.class.debug(message)
-      end
+      self.class.debug(message)
     end
   end
 end
