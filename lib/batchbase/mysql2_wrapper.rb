@@ -3,7 +3,7 @@
 class Batchbase::Mysql2Wrapper
   attr_accessor :client,:output_query_log
 
-  QUERY_BASE_COLOR = 35
+  QUERY_BASE_COLOR    = 35
   QUERY_SPECIAL_COLOR = 31
 
   def initialize(config)
