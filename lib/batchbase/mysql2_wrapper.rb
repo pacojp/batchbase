@@ -12,14 +12,19 @@ class Batchbase::Mysql2Wrapper
     self.client = Mysql2::Client.new(config)
     # サーバが古いので一応問題あるけど以下の方向で
     # http://kennyqi.com/archives/61.html
-    self.class.query(self.client,"set names utf8")
+    self.class.query(self.client,"SET NAMES 'utf8'")
+    self.class.query(self.client,"SET SQL_AUTO_IS_NULL=0")
   end
 
-  def self.query(client,str,output_query_log=false,color=QUERY_BASE_COLOR)
+  # TODO 実行時間。更新項目数
+  def self.query(client,str,output_query_log=true,color=QUERY_BASE_COLOR)
+    s = Time.now
+    ret = client.query(str)
+    e = Time.now
     if output_query_log
-      Batchbase::LogFormatter.info "[QUERY] \e[#{color}m#{str}\e[0m"
+      Batchbase::LogFormatter.info "[QUERY] "" \e[#{color}m (#{((e-s)*1000).round(2)}ms) #{str}\e[0m"
     end
-    client.query(str)
+    ret
   end
 
   def query(str,color=QUERY_BASE_COLOR)
