@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 class Batchbase::Mysql2Wrapper
-  attr_accessor :client
+  attr_accessor :client,:output_query_log
 
   QUERY_BASE_COLOR = 35
   QUERY_SPECIAL_COLOR = 31
 
   def initialize(config)
+    self.output_query_log = true
     Batchbase::LogFormatter.info "mysql2 client created with #{config.inspect}"
     self.client = Mysql2::Client.new(config)
     # サーバが古いので一応問題あるけど以下の方向で
@@ -14,13 +15,15 @@ class Batchbase::Mysql2Wrapper
     self.class.query(self.client,"set names utf8")
   end
 
-  def self.query(client,str,color=QUERY_BASE_COLOR)
-    Batchbase::LogFormatter.info "[QUERY] \e[#{color}m#{str}\e[0m"
+  def self.query(client,str,output_query_log=false,color=QUERY_BASE_COLOR)
+    if output_query_log
+      Batchbase::LogFormatter.info "[QUERY] \e[#{color}m#{str}\e[0m"
+    end
     client.query(str)
   end
 
   def query(str,color=QUERY_BASE_COLOR)
-    self.class.query(self.client,str,color)
+    self.class.query(self.client,str,self.output_query_log,color)
   end
 
   def transaction(&proc)
