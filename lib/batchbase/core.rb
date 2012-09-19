@@ -8,6 +8,10 @@ module Batchbase
       @options ||= v
     end
 
+    def environment
+      @__env
+    end
+
     # [options]
     #   プログラムより指定するバッチ動作オプション（ハッシュ値）
     #   :double_process_check 初期値 true
@@ -20,8 +24,8 @@ module Batchbase
     #
     #   include Batchbase::Core
     #
-    #   execute do |env|
-    #     p env
+    #   execute do
+    #     p environment
     #     info "batch process01"
     #   end
     #
@@ -101,7 +105,8 @@ module Batchbase
         e[:env]                  = env
         e[:pg_path]              = pg_path
         e[:pid_file]             = pid_file
-        return (yield(e, process))
+        @__env = e
+        return yield(process)
       rescue => e
         Batchbase::LogFormatter.error e
       ensure

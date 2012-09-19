@@ -6,6 +6,6 @@ require 'batchbase'
 include Batchbase::Core
 @l = Batchbase::LogFormatter.new
 
-execute do |env|
+execute do
   @l.info 'test'
 end

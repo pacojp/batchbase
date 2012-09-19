@@ -7,8 +7,8 @@ class Batch < Batchbase::LogFormatter
   include Batchbase::Core
 
   def proceed
-    execute do |env|
-      p env
+    execute do
+      p environment
       info 'info message'
       raise 'error'
     end
