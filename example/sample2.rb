@@ -16,7 +16,11 @@ class Batch < Batchbase::LogFormatter
 
     execute do
       info env.inspect
-      info env[:favorite_number]
+      if env[:favorite_number]
+        info env[:favorite_number].to_s
+      else
+        info 'fovorite_number not set'
+      end
       info 'info message'
 
       # データベース

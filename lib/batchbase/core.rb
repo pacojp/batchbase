@@ -44,6 +44,7 @@ module Batchbase
     #
     # 内部的には
     #   init
+    #   parse_options
     #   execute_inner
     #   release
     # の順にコールしてます
@@ -52,18 +53,6 @@ module Batchbase
     #   プログラムより指定するバッチ動作オプション（ハッシュ値）
     #   :double_process_check 初期値 true
     #   :auto_recover         初期値 false
-    #
-    # バッチの主処理をこのメソッドへのブロック引数として定義してください
-    #
-    #   require 'rubygems'
-    #   require 'batchbase'
-    #
-    #   include Batchbase::Core
-    #
-    #   execute do
-    #     p environment
-    #     info "batch process01"
-    #   end
     #
     def execute(options={},&process)
       begin
@@ -75,7 +64,7 @@ module Batchbase
         case result
         when DOUBLE_PROCESS_CHECK__OK,DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
           if result == DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
-            self.warn "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
+            __logger.warn "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
           end
           execute_inner(&process)
         when DOUBLE_PROCESS_CHECK__NG

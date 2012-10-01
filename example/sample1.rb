@@ -6,13 +6,6 @@ require 'batchbase'
 include Batchbase::Core
 @l = Batchbase::LogFormatter.new
 
-opts = self.option_parser
-opts.on("-x", "--xxxx",
-       String,"xxx"
-        ) do |v|
-  env[:xxx] = v
-end
-
 execute do
   @l.info 'test'
   @l.info env[:pid_file]
