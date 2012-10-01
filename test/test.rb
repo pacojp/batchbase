@@ -173,9 +173,8 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal 11,b.env[:favorite_number]
   end
 
+  # すでにバッチ起動＆プロセスがまだ存在する場合のテスト
   def test_prosess_still_exists
-    # 取り敢えずこのテスの際は無駄なファイルを消すよ
-
     pid = fork do
       b = Batch.new
       b.proceed(:pid_file=>PID_FILE_FORCE)
