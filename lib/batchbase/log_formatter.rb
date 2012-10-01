@@ -3,7 +3,11 @@
 #
 module Batchbase
   class LogFormatter
+    def self.skip_logging
+      @skip_logging = true
+    end
     def self.log(log_type,message, is_base_info = true)
+      return if @skip_logging
 
       # ......nangiyana
       message.gsub!(/\r\n/,"\n")

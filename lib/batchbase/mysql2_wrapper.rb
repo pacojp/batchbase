@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+require 'yaml'
+
 class Batchbase::Mysql2Wrapper
   attr_accessor :client,:output_query_log
 
