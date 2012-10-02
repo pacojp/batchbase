@@ -9,5 +9,4 @@ include Batchbase::Core
 execute do
   @l.info 'test'
   @l.info env[:pid_file]
-  @l.info env[:xxx] ||= 'null'
 end
