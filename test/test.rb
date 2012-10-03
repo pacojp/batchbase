@@ -5,15 +5,19 @@ require 'test_helper'
 require 'test/unit'
 require 'Fileutils'
 
+require 'sys/proctable'
+
 require 'batch'
 
 class TestBatchbase < Test::Unit::TestCase
 
   PID_FILE_FORCE = '/tmp/.batchbase_test.pid'
+  PID_FILE_DAEMONIZE_TEST = '/tmp/.batchbase_daemonize_test.pid'
 
   def setup
     File.delete(pid_file) if File.exist?(pid_file)
     File.delete(PID_FILE_FORCE) if File.exist?(PID_FILE_FORCE)
+    File.delete(PID_FILE_DAEMONIZE_TEST) if File.exist?(PID_FILE_DAEMONIZE_TEST)
   end
 
   def pid_file
@@ -171,6 +175,37 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal false,b.env[:auto_recover]
     assert_equal 'test.rb',b.env[:pg_name]
     assert_equal 11,b.env[:favorite_number]
+  end
+
+  def test_deamonize
+    b1 = Batch.new
+    b2 = Batch.new
+    pid = fork do
+      b2.proceed(:daemonize=>true,:pid_file=>PID_FILE_DAEMONIZE_TEST)
+    end
+
+    sleep 1
+    #
+    # デーモン化すると
+    # ・pidが変わる
+    # ・ppidが1になるk
+    #
+    pid_new = File.read(PID_FILE_DAEMONIZE_TEST).chomp.to_i
+    assert_not_equal pid,pid_new
+    daemon_process = Sys::ProcTable.ps(pid_new)
+    assert_equal 1,daemon_process.ppid
+    sleep 3
+    assert_equal true,b1.is_there_process(pid_new)
+
+    # TODO シグナルを送る
+    # pid_fileを消して終了するか？
+    `kill #{pid_new}`
+  end
+
+  def test_is_there_process
+    b = Batch.new
+    assert_equal true,b.is_there_process($$)
+    assert_equal false,b.is_there_process(1111111111)
   end
 
   # すでにバッチ起動＆プロセスがまだ存在する場合のテスト

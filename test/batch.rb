@@ -6,6 +6,12 @@ class Batch < Batchbase::LogFormatter
     execute(opt) do
       sleep 3
       11
+
+      if opt[:daemonize]
+        loop do
+          sleep 1
+        end
+      end
     end
   end
 end

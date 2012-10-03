@@ -82,6 +82,18 @@ module Batchbase
       end
     end
 
+    def is_there_process(pid)
+      pid_list = `ps ax | awk '{print $1}'`
+      pid_list.gsub!(/\r\n/,"\n")
+      pid_list.gsub!(/\r/,"\n")
+      pid_list = "\n#{pid_list}\n"
+      if pid_list =~ /\n#{pid}\n/
+        true
+      else
+        false
+      end
+    end
+
     private
 
     #
@@ -108,7 +120,8 @@ module Batchbase
       env[:environment]          = options[:environment] ||= 'development'
       env[:pg_name]              = File.basename(pg_path)
       env[:pid_file]             = options[:pid_file]
-      env[:daemonized]           = options[:daemonized] ||= false
+      env[:daemonize]            = options[:daemonize]
+      env[:daemonize]            = false if env[:daemonize] == nil
       env[:pid_file]             ||= "/tmp/.#{env[:pg_name]}.#{Digest::MD5.hexdigest(pg_path)}.pid"
 
       opts = option_parser
@@ -120,9 +133,7 @@ module Batchbase
       end
 
       opts.on("-d", "--daemonize") do
-        env[:daemonized] = true
-        Batchbase::LogFormatter.info "daemonized"
-        Process.daemon
+        env[:daemonize] = true
       end
 
       opts.on("-h","--help","show this help message.") { $stderr.puts opts; exit }
@@ -153,11 +164,7 @@ module Batchbase
         __logger.debug pid_file
         if File.exists?(pid_file)
           pid = File.open(pid_file).read.chomp
-          pid_list = `ps ax | awk '{print $1}'`
-          pid_list.gsub!(/\r\n/,"\n")
-          pid_list.gsub!(/\r/,"\n")
-          pid_list = "\n#{pid_list}\n"
-          if (pid != nil && pid != "" ) && pid_list =~ /\n#{pid}\n/
+          if (pid != nil && pid != "" ) && is_there_process(pid)
             env[:double_process_check_problem] = true
             return DOUBLE_PROCESS_CHECK__STILL_RUNNING
           else
@@ -184,6 +191,17 @@ module Batchbase
 
     def execute_inner(&process)
       @__executed = true
+
+      if env[:daemonize]
+        # HACKME logging
+        __logger.info "daemonized"
+        env[:pid_old] = env[:pid]
+        Process.daemon
+        env[:pid] = Process.pid
+        #File.open('/tmp/ttt', "w"){|f|f.write env.inspect}
+        File.open(pid_file, "w"){|f|f.write env[:pid]}
+        sleep 1
+      end
       return yield(process)
     end
   end
