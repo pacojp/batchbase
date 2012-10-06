@@ -3,22 +3,12 @@
 
 $: << File.dirname(__FILE__)
 require 'test_helper'
-# usage type 1
-#
-include Batchbase::Core
-@l = Batchbase::LogFormatter.new
 
-opts=OptionParser.new
-options = {}
-opts.on("-x", "--xxxx",
-       String,"xxx"
-        ) do |v|
-  options[:xxx] = v
-end
+require 'batch'
 
-set_option_parser(opts)
+b = Batch.new
+b.set_signal_observer(:receive_signal)
+b.proceed
 
-execute(options) do
-  sleep 2
-  @l.info 'test'
-end
+
+

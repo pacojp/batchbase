@@ -5,7 +5,8 @@ require "optparse"
 module Batchbase
   module Core
 
-    SIGNALS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
+    #SIGNALS = [ :QUIT, :INT, :TERM, :USR1, :USR2, :HUP ]
+    SIGNALS = [ :QUIT, :INT, :TERM ]
 
     DOUBLE_PROCESS_CHECK__OK            =  1
     DOUBLE_PROCESS_CHECK__AUTO_RECOVERD =  2
@@ -82,16 +83,36 @@ module Batchbase
       end
     end
 
-    def is_there_process(pid)
-      pid_list = `ps ax | awk '{print $1}'`
-      pid_list.gsub!(/\r\n/,"\n")
-      pid_list.gsub!(/\r/,"\n")
-      pid_list = "\n#{pid_list}\n"
-      if pid_list =~ /\n#{pid}\n/
-        true
-      else
-        false
+    module ClassMethods
+      def is_there_process(pid)
+        pid_list = `ps ax | awk '{print $1}'`
+        pid_list.gsub!(/\r\n/,"\n")
+        pid_list.gsub!(/\r/,"\n")
+        pid_list = "\n#{pid_list}\n"
+        if pid_list =~ /\n#{pid}\n/
+          true
+        else
+          false
+        end
       end
+    end
+
+    def self.included(mod)
+      # ModuleのインスタンスmodがAをincludeした際に呼び出され、
+      # A::ClassMethodsのインスタンスメソッドをmodに特異メソッドとして追加する。
+      mod.extend ClassMethods
+    end
+
+    def set_signal_observer(method_name)
+      @__signal_observers ||= []
+      case method_name
+      when String
+        method_name = method_name.to_sym
+      when Symbol
+      else
+        raise ArgumentError.new('method_name must be String or Symbol')
+      end
+      @__signal_observers << method_name
     end
 
     private
@@ -101,6 +122,7 @@ module Batchbase
     # ロックファイルの作成
     #
     def init
+      SIGNALS.each { |sig| trap(sig){r_signal(sig)} }
       @__script_started_at = Time.now
       raise 'already inited' if @__init
       @__init   = true
@@ -164,7 +186,7 @@ module Batchbase
         __logger.debug pid_file
         if File.exists?(pid_file)
           pid = File.open(pid_file).read.chomp
-          if (pid != nil && pid != "" ) && is_there_process(pid)
+          if (pid != nil && pid != "" ) && self.class.is_there_process(pid)
             env[:double_process_check_problem] = true
             return DOUBLE_PROCESS_CHECK__STILL_RUNNING
           else
@@ -189,16 +211,28 @@ module Batchbase
       end
     end
 
+    #
+    # receive_signal
+    # 一応名前がバッティングしないように、、
+    #
+    def r_signal(signal)
+      @__signal_observers.each do |method_name|
+        begin
+        self.send method_name,signal
+        rescue => e
+          __logger.error("can not call '#{method_name}'")
+        end
+      end
+    end
+
     def execute_inner(&process)
       @__executed = true
-
       if env[:daemonize]
         # HACKME logging
         __logger.info "daemonized"
         env[:pid_old] = env[:pid]
         Process.daemon
         env[:pid] = Process.pid
-        #File.open('/tmp/ttt', "w"){|f|f.write env.inspect}
         File.open(pid_file, "w"){|f|f.write env[:pid]}
         sleep 1
       end
