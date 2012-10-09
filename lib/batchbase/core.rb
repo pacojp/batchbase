@@ -44,7 +44,6 @@ module Batchbase
     end
 
     def create_logger(io=STDERR,log_level=Logger::INFO)
-      return @__logger if @__logger
       @__logger = Logger.new(io)
       @__logger.formatter = LogFormatter.formatter
       @__logger.level = log_level

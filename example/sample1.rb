@@ -4,9 +4,9 @@ require 'batchbase'
 # usage type 1
 
 include Batchbase::Core
+create_logger('/tmp/batchbase_test_sample1.log')
 
 execute do
-  create_logger('/tmp/batchbase_test_sample1.log')
   logger.info 'test'
   logger.info env[:pid_file]
 end
