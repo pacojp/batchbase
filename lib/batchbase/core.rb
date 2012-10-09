@@ -43,6 +43,9 @@ module Batchbase
       @__logger ||= create_logger
     end
 
+    #
+    # 内部保持をするロガーを新規作成
+    #
     def create_logger(io=STDERR,log_level=Logger::INFO)
       @__logger = Logger.new(io)
       @__logger.formatter = LogFormatter.formatter
@@ -50,10 +53,16 @@ module Batchbase
       @__logger
     end
 
+    #
+    # 内部保持するロガーを引数にて設定
+    #
     def set_logger(_logger)
       @__logger = _logger
     end
 
+    #
+    # ログを出力し内容設定（内部的にはログを出力するが、その向き先が/dev/nullって実装になってます）
+    #
     def skip_logging
       create_logger("/dev/null")
     end

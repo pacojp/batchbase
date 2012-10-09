@@ -2,7 +2,7 @@
 require 'rubygems'
 require 'batchbase'
 
-# usage type 1
+# usage type 3
 
 include Batchbase::Core
 create_logger('/tmp/batchbase_test_sample3.log')
