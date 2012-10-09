@@ -259,4 +259,11 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal true,File.exists?(b2.env[:pid_file]) # pid_fileまだは存在していないとだめ
     sleep 3
   end
+
+  #
+  # HACKME
+  # executeを読んだ際のメッセージ文言等でエラーが出る場合のフック、、、
+  # 実際はexecuteをシュミレートしたテストしかしていない＆log出力も
+  # 切ってるので、、、、、、
+  #
 end

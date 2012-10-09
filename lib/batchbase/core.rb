@@ -39,14 +39,12 @@ module Batchbase
     # loggerの出力をOFFにしたい場合は
     # 引数を"/dev/null"で渡してください
     #
-    def logger(io=nil,log_level=Logger::INFO)
-      if io
-        @__logger = Logger.new(io)
-        @__logger.formatter = LogFormatter.formatter
-        @__logger.level = log_level
-      end
+    def logger
+      @__logger ||= create_logger
+    end
+
+    def create_logger(io=STDERR,log_level=Logger::INFO)
       return @__logger if @__logger
-      io ||= STDERR
       @__logger = Logger.new(io)
       @__logger.formatter = LogFormatter.formatter
       @__logger.level = log_level
@@ -58,7 +56,7 @@ module Batchbase
     end
 
     def skip_logging
-      logger("/dev/null")
+      create_logger("/dev/null")
     end
 
     #
@@ -84,13 +82,13 @@ module Batchbase
         case result
         when DOUBLE_PROCESS_CHECK__OK,DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
           if result == DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
-            logger.warn "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
+            logger.warn "lock file still exists[pid=#{env[:old_pid_from_pid_file]}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
           end
           execute_inner(&process)
         when DOUBLE_PROCESS_CHECK__NG
-          logger.error "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover disabled.so process can not continue"
+          logger.error "lock file still exists[pid=#{env[:old_pid_from_pid_file]}:file=#{pid_file}],but process does not found.Auto_recover disabled.so process can not continue"
         when DOUBLE_PROCESS_CHECK__STILL_RUNNING
-          logger.warn "pid:#{pid} still running"
+          logger.warn "pid:#{env[:old_pid_from_pid_file]} still running"
         else
           raise 'must not happen'
         end
@@ -200,6 +198,7 @@ module Batchbase
         logger.debug pid_file
         if File.exists?(pid_file)
           pid = File.open(pid_file).read.chomp
+          env[:old_pid_from_pid_file] = pid
           if (pid != nil && pid != "" ) && self.class.is_there_process(pid)
             env[:double_process_check_problem] = true
             return DOUBLE_PROCESS_CHECK__STILL_RUNNING
