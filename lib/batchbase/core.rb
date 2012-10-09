@@ -2,6 +2,7 @@
 require 'digest/md5'
 require "optparse"
 require 'sys/proctable'
+require 'logger'
 
 module Batchbase
   module Core
@@ -34,13 +35,30 @@ module Batchbase
 
     def pid_file;env[:pid_file];end
 
-    def __logger
-      return @__logger if @__logger
-      if self.respond_to?(:info)
-        @__logger = self
-      else
-        @__logger = Batchbase::LogFormatter
+    #
+    # loggerの出力をOFFにしたい場合は
+    # 引数を"/dev/null"で渡してください
+    #
+    def logger(io=nil,log_level=Logger::INFO)
+      if io
+        @__logger = Logger.new(io)
+        @__logger.formatter = LogFormatter.formatter
+        @__logger.level = log_level
       end
+      return @__logger if @__logger
+      io ||= STDERR
+      @__logger = Logger.new(io)
+      @__logger.formatter = LogFormatter.formatter
+      @__logger.level = log_level
+      @__logger
+    end
+
+    def set_logger(_logger)
+      @__logger = _logger
+    end
+
+    def skip_logging
+      logger("/dev/null")
     end
 
     #
@@ -59,28 +77,28 @@ module Batchbase
     def execute(options={},&process)
       begin
         init
-        __logger.info  "start script(#{pg_path})"
-        __logger.debug "caller=#{caller}"
+        logger.info  "start script(#{pg_path})"
+        logger.debug "caller=#{caller}"
         parse_options(options,ARGV)
         result = double_process_check_and_create_pid_file
         case result
         when DOUBLE_PROCESS_CHECK__OK,DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
           if result == DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
-            __logger.warn "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
+            logger.warn "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
           end
           execute_inner(&process)
         when DOUBLE_PROCESS_CHECK__NG
-          __logger.error "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover disabled.so process can not continue"
+          logger.error "lock file still exists[pid=#{pid}:file=#{pid_file}],but process does not found.Auto_recover disabled.so process can not continue"
         when DOUBLE_PROCESS_CHECK__STILL_RUNNING
-          __logger.warn "pid:#{pid} still running"
+          logger.warn "pid:#{pid} still running"
         else
           raise 'must not happen'
         end
       rescue => e
-        __logger.error e
+        logger.error e
       ensure
         release
-        __logger.info "finish script (%1.3fsec)" % (Time.now - @__script_started_at)
+        logger.info "finish script (%1.3fsec)" % (Time.now - @__script_started_at)
       end
     end
 
@@ -179,7 +197,7 @@ module Batchbase
       if env[:double_process_check]
         double_process_check_worked = false
         #pg_path = File.expand_path($0)
-        __logger.debug pid_file
+        logger.debug pid_file
         if File.exists?(pid_file)
           pid = File.open(pid_file).read.chomp
           if (pid != nil && pid != "" ) && self.class.is_there_process(pid)
@@ -216,7 +234,7 @@ module Batchbase
         begin
         self.send method_name,signal
         rescue => e
-          __logger.error("can not call '#{method_name}'")
+          logger.error("can not call '#{method_name}'")
         end
       end
     end
@@ -225,7 +243,7 @@ module Batchbase
       @__executed = true
       if env[:daemonize]
         # HACKME logging
-        __logger.info "daemonized"
+        logger.info "daemonized"
         env[:pid_old] = env[:pid]
         Process.daemon
         env[:pid] = Process.pid

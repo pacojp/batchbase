@@ -15,13 +15,13 @@ class Batch < Batchbase::LogFormatter
     end
 
     execute do
-      info env.inspect
+      logger.info env.inspect
       if env[:favorite_number]
-        info env[:favorite_number].to_s
+        logger.info env[:favorite_number].to_s
       else
-        info 'fovorite_number not set'
+        logger.info 'fovorite_number not set'
       end
-      info 'info message'
+      logger.info 'info message'
     end
   end
 end
