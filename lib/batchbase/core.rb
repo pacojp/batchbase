@@ -237,12 +237,21 @@ module Batchbase
     # 一応名前がバッティングしないように、、
     #
     def r_signal(signal)
+      sent_signal = false
       signal_observers.each do |method_name|
         begin
-        self.send method_name,signal
+          self.send method_name,signal
+          sent_signal = true
         rescue => e
-          logger.error("can not call '#{method_name}'")
+          message = "signal #{signal} received. but can not call '#{method_name}'"
+          env[:signal_error] = message
+          logger.error(message)
         end
+      end
+
+      unless sent_signal
+        trap(signal,"DEFAULT")
+        Process.kill signal,$$
       end
     end
 

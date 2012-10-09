@@ -1,22 +1,20 @@
 class BatchTooLong < Batchbase::LogFormatter
   include Batchbase::Core
-  skip_logging
-
-  TEST_FILE = '/tmp/.batchbase_batch.txt'
 
   def proceed(opt={})
+    unless opt[:not_set_observer]
+      set_signal_observer(:receive_signal)
+    end
     @shutdown = false
     execute(opt) do
       100.times do
         sleep 1
-        if @shutdown
-          break
-        end
+        break if @shutdown
       end
     end
   end
 
   def receive_signal(sig)
-    @shutdown = sig
+    @shutdown = true
   end
 end

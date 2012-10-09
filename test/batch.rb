@@ -6,15 +6,16 @@ class Batch < Batchbase::LogFormatter
 
   def proceed(opt={})
     @shutdown = false
+    set_signal_observer(:receive_signal)
+
     execute(opt) do
       sleep 2
       File.write(TEST_FILE,$$)
-
       if opt[:daemonize]
         loop do
           sleep 1
           if @shutdown
-            puts "shutdown by #{@shutdown}"
+            #puts "shutdown by #{@shutdown}"
             break
           end
         end

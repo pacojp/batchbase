@@ -189,9 +189,9 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal 11,b.env[:favorite_number]
   end
 
-  def test_deamonize
-    b = new_batch_instance
+  def test_daemonize
     pid = fork do
+      b = new_batch_instance
       b.proceed(:daemonize=>true,:pid_file=>PID_FILE_DAEMONIZE_TEST)
     end
 
@@ -207,6 +207,7 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal 1,daemon_process.ppid
     sleep 3
     assert_equal true,Batch.is_there_process(pid_new)
+    # デーモン化したスクリプトから書き込んだ自身のpidがこちらで認識しているpidと同一化の確認
     assert_equal pid_new,File.read(Batch::TEST_FILE).chomp.to_i
     # シグナルを送る
     # pid_fileを消して終了するか？
@@ -240,6 +241,29 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal false,File.exists?(PID_FILE_FORCE)
   end
 
+  #
+  # オブザーバーを設定していない場合は
+  # デフォルトの挙動をするように変更して
+  # もう一度同様のシグナルを受ける
+  #
+  def test_signal_observer_not_set
+    assert_equal false,File.exists?(PID_FILE_FORCE)
+    pid = fork do
+      b = BatchTooLong.new
+      b.skip_logging
+      b.proceed(:pid_file=>PID_FILE_FORCE,:not_set_observer=>true)
+    end
+    sleep 3
+    pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
+    assert_equal true,Batch.is_there_process(pid)
+    assert_equal pid,pid_by_file
+    `kill #{pid}`
+    sleep 3
+    # 普通に終了すべき
+    assert_equal false,Batch.is_there_process(pid)
+    assert_equal false,File.exists?(PID_FILE_FORCE)
+  end
+
   # すでにバッチ起動＆プロセスがまだ存在する場合のテスト
   def test_prosess_still_exists
     pid = fork do
@@ -256,8 +280,9 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal Batch::DOUBLE_PROCESS_CHECK__STILL_RUNNING,result
     #b2.send(:execute_inner)
     b2.send(:release)
-    assert_equal true,File.exists?(b2.env[:pid_file]) # pid_fileまだは存在していないとだめ
-    sleep 3
+    # pid_fileまだは存在していないとだめ
+    assert_equal true,File.exists?(b2.env[:pid_file])
+    sleep 2
   end
 
   #
