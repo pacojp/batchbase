@@ -114,6 +114,10 @@ module Batchbase
       mod.extend ClassMethods
     end
 
+    def signal_observers
+      @__signal_observers ||= []
+    end
+
     def set_signal_observer(method_name)
       @__signal_observers ||= []
       case method_name
@@ -228,7 +232,7 @@ module Batchbase
     # 一応名前がバッティングしないように、、
     #
     def r_signal(signal)
-      @__signal_observers.each do |method_name|
+      signal_observers.each do |method_name|
         begin
         self.send method_name,signal
         rescue => e
