@@ -7,7 +7,7 @@ class Batch < Batchbase::LogFormatter
   def proceed(opt={})
     @shutdown = false
     execute(opt) do
-      sleep 3
+      sleep 2
       File.write(TEST_FILE,$$)
 
       if opt[:daemonize]

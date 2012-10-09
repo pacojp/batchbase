@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 require 'digest/md5'
 require "optparse"
+require 'sys/proctable'
 
 module Batchbase
   module Core
@@ -85,15 +86,10 @@ module Batchbase
 
     module ClassMethods
       def is_there_process(pid)
-        pid_list = `ps ax | awk '{print $1}'`
-        pid_list.gsub!(/\r\n/,"\n")
-        pid_list.gsub!(/\r/,"\n")
-        pid_list = "\n#{pid_list}\n"
-        if pid_list =~ /\n#{pid}\n/
-          true
-        else
-          false
-        end
+        pid = pid.to_i
+        raise 'pid must be number' if pid == 0
+        process = Sys::ProcTable.ps(pid)
+        process != nil && process.state == 'run'
       end
     end
 

@@ -10,8 +10,9 @@ Gem::Specification.new do |s|
   s.homepage    = ""
   s.summary     = %q{oreore batch base class}
   s.description = %q{oreore batch base class}
-
   s.rubyforge_project = "batchbase"
+
+  s.add_dependency "sys-proctable","0.9.1"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")

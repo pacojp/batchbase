@@ -202,10 +202,12 @@ class TestBatchbase < Test::Unit::TestCase
     sleep 3
     assert_equal true,Batch.is_there_process(pid_new)
     assert_equal pid_new,File.read(Batch::TEST_FILE).chomp.to_i
-
-    # TODO シグナルを送る
+    # シグナルを送る
     # pid_fileを消して終了するか？
     `kill #{pid_new}`
+    sleep 3
+    assert_equal false,Batch.is_there_process(pid_new)
+    assert_equal false,File.exists?(PID_FILE_DAEMONIZE_TEST)
   end
 
   def test_is_there_process
@@ -223,8 +225,10 @@ class TestBatchbase < Test::Unit::TestCase
     pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
     assert_equal true,Batch.is_there_process(pid)
     assert_equal pid,pid_by_file
+    # シグナルを送る
+    # pid_fileを消して終了するか？
     `kill #{pid}`
-    sleep 6
+    sleep 3
     assert_equal false,Batch.is_there_process(pid)
     assert_equal false,File.exists?(PID_FILE_FORCE)
   end
