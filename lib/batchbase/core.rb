@@ -7,8 +7,8 @@ require 'logger'
 module Batchbase
   module Core
 
-    #SIGNALS = [ :QUIT, :INT, :TERM, :USR1, :USR2, :HUP ]
-    SIGNALS = [ :QUIT, :INT, :TERM ]
+    SIGNALS = [ :QUIT, :INT, :TERM, :USR1, :USR2, :HUP ]
+    #SIGNALS = [ :QUIT, :INT, :TERM ]
 
     DOUBLE_PROCESS_CHECK__OK            =  1
     DOUBLE_PROCESS_CHECK__AUTO_RECOVERD =  2
@@ -61,7 +61,7 @@ module Batchbase
     end
 
     #
-    # ログを出力し内容設定（内部的にはログを出力するが、その向き先が/dev/nullって実装になってます）
+    # ログを出力しないように設定（内部的にはログを出力するが、その向き先が/dev/nullって実装になってます）
     #
     def skip_logging
       create_logger("/dev/null")
@@ -141,10 +141,6 @@ module Batchbase
 
     private
 
-    #
-    # オプションのパース及び
-    # ロックファイルの作成
-    #
     def init
       SIGNALS.each { |sig| trap(sig){r_signal(sig)} }
       @__script_started_at = Time.now
