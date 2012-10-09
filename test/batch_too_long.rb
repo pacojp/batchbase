@@ -3,7 +3,11 @@ class BatchTooLong < Batchbase::LogFormatter
 
   def proceed(opt={})
     unless opt[:not_set_observer]
-      set_signal_observer(:receive_signal)
+      if opt[:signal_cancel]
+        set_signal_observer(:ignore_signal)
+      else
+        set_signal_observer(:receive_signal)
+      end
     end
     @shutdown = false
     execute(opt) do
@@ -16,5 +20,8 @@ class BatchTooLong < Batchbase::LogFormatter
 
   def receive_signal(sig)
     @shutdown = true
+  end
+
+  def ignore_signal(sig)
   end
 end

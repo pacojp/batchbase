@@ -264,6 +264,30 @@ class TestBatchbase < Test::Unit::TestCase
     assert_equal false,File.exists?(PID_FILE_FORCE)
   end
 
+  # 特に何もしないシグナルハンドラーを設定すると
+  def test_signal_ignore
+    assert_equal false,File.exists?(PID_FILE_FORCE)
+    pid = fork do
+      b = BatchTooLong.new
+      b.skip_logging
+      b.proceed(:pid_file=>PID_FILE_FORCE,:signal_cancel=>true)
+    end
+    sleep 3
+    pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
+    assert_equal true,Batch.is_there_process(pid)
+    assert_equal pid,pid_by_file
+    `kill #{pid}`
+    sleep 3
+    # 終了しない
+    assert_equal true,Batch.is_there_process(pid)
+    assert_equal true,File.exists?(PID_FILE_FORCE)
+    `kill -9 #{pid}`
+    sleep 3
+    # 終了するがpidファイルは残る
+    assert_equal false,Batch.is_there_process(pid)
+    assert_equal true,File.exists?(PID_FILE_FORCE)
+  end
+
   # すでにバッチ起動＆プロセスがまだ存在する場合のテスト
   def test_prosess_still_exists
     pid = fork do
