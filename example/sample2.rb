@@ -3,7 +3,7 @@ require 'batchbase'
 
 # usage type 2
 
-class Batch < Batchbase::LogFormatter
+class Batch
   include Batchbase::Core
 
   def proceed

@@ -3,6 +3,7 @@ require 'digest/md5'
 require "optparse"
 require 'sys/proctable'
 require 'logger'
+require 'kanamei_log_formatter'
 
 module Batchbase
   module Core
@@ -48,7 +49,7 @@ module Batchbase
     #
     def create_logger(io=STDERR,log_level=Logger::INFO)
       @__logger = Logger.new(io)
-      @__logger.formatter = LogFormatter.formatter
+      @__logger.formatter = Kanamei::LogFormatter.formatter
       @__logger.level = log_level
       @__logger
     end
