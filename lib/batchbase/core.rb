@@ -169,7 +169,7 @@ module Batchbase
 
       opts = option_parser
 
-      opts.on("-e", "--environment=name",
+      opts.on("-e", "--environment name",
         String,"specifies the environment",
         "default: development") do |v|
         env[:environment] = v
