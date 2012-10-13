@@ -1,4 +1,4 @@
-class BatchTooLong < Batchbase::LogFormatter
+class BatchTooLong
   include Batchbase::Core
 
   def proceed(opt={})

@@ -5,7 +5,10 @@ require 'test_helper'
 require 'test/unit'
 require 'Fileutils'
 
-require 'sys/proctable'
+#require 'bundler'
+#Bundler.require
+
+#require 'sys/proctable'
 
 require 'batch'
 require 'batch_too_long'

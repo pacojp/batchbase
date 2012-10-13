@@ -1,4 +1,4 @@
-class Batch < Batchbase::LogFormatter
+class Batch
   include Batchbase::Core
   skip_logging
 
