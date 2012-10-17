@@ -16,12 +16,14 @@ class TestBatchbase < Test::Unit::TestCase
 
   PID_FILE_FORCE = '/tmp/.batchbase_test.pid'
   PID_FILE_DAEMONIZE_TEST = '/tmp/.batchbase_daemonize_test.pid'
+  PROCESS_NAME   = 'batchbase_test_hogehoge'
 
   def setup
     delete_file(pid_file)
     delete_file(PID_FILE_FORCE)
     delete_file(PID_FILE_DAEMONIZE_TEST)
-    delete_file(Batch::TEST_FILE)
+    delete_file(Batch::TEST_FILE) # HACKME したとまとめる、、、
+    delete_file(FILE_PG_TEST)
   end
 
   def new_batch_instance
@@ -231,9 +233,9 @@ class TestBatchbase < Test::Unit::TestCase
       b.skip_logging
       b.proceed(:pid_file=>PID_FILE_FORCE)
     end
-    sleep 3
-    pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
+    sleep 2
     assert_equal true,Batch.is_there_process(pid)
+    pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
     assert_equal pid,pid_by_file
     # シグナルを送る
     # pid_fileを消して終了するか？
@@ -274,7 +276,7 @@ class TestBatchbase < Test::Unit::TestCase
       b.skip_logging
       b.proceed(:pid_file=>PID_FILE_FORCE,:signal_cancel=>true)
     end
-    sleep 3
+    sleep 2
     pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
     assert_equal true,Batch.is_there_process(pid)
     assert_equal pid,pid_by_file
@@ -309,6 +311,76 @@ class TestBatchbase < Test::Unit::TestCase
     # pid_fileまだは存在していないとだめ
     assert_equal true,File.exists?(b2.env[:pid_file])
     sleep 2
+  end
+
+  # pidファイルを手で消したら所詮二重起動チェックから漏れるよね
+  def test_can_break_double_process_check
+    pid = fork do
+      b = new_batch_instance
+      b.proceed(:pid_file=>PID_FILE_FORCE)
+    end
+
+    sleep 0.5
+
+    b2 = new_batch_instance
+    b2.send(:init)
+    b2.send(:parse_options,{:pid_file=>PID_FILE_FORCE},[])
+    result = b2.send(:double_process_check_and_create_pid_file)
+    assert_equal Batch::DOUBLE_PROCESS_CHECK__STILL_RUNNING,result
+    #b2.send(:execute_inner)
+    b2.send(:release)
+    # pid_fileまだは存在していないとだめ
+    assert_equal true,File.exists?(b2.env[:pid_file])
+
+    # しかしファイルを消されるとチェックは通る
+    File.delete(PID_FILE_FORCE)
+    b2 = new_batch_instance
+    b2.send(:init)
+    b2.send(:parse_options,{:pid_file=>PID_FILE_FORCE},[])
+    result = b2.send(:double_process_check_and_create_pid_file)
+    assert_equal Batch::DOUBLE_PROCESS_CHECK__OK,result
+    #b2.send(:execute_inner)
+    b2.send(:release)
+
+    `kill #{pid}`
+    sleep 2
+    delete_file(PID_FILE_FORCE)
+  end
+
+  def test_double_process_check_type_exec
+    system "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE} &"
+    sleep 1
+    system "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE} &"
+    sleep 1
+    assert_equal Batch::DOUBLE_PROCESS_CHECK__STILL_RUNNING,File.read(FILE_PG_TEST).to_i
+
+    sleep 3
+  end
+
+  def test_can_break_double_process_check_exec
+    system "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE} &"
+    sleep 0.5
+    delete_file(PID_FILE_FORCE)
+    sleep 0.5
+    system "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE} &"
+    sleep 1
+    assert_equal false,File.exists?(FILE_PG_TEST) # 停止していないってことで
+    sleep 3
+  end
+
+  # process_nameまで指定するとプロセス上に同じ名前があってもうごきません
+  def test_double_process_check_with_process_name
+    cmd = "ruby ./test/pg_for_test.rb --process_name hogehogemorimoribatchbase --lockfile #{PID_FILE_FORCE} &"
+    system cmd
+    sleep 0.5
+    assert_equal false,File.exists?(FILE_PG_TEST)
+    delete_file(PID_FILE_FORCE)
+    sleep 0.5
+    system cmd
+    sleep 1
+
+    assert_equal Batch::DOUBLE_PROCESS_CHECK__SAME_PROCESS_NAME,File.read(FILE_PG_TEST).to_i
+    sleep 3
   end
 
   #

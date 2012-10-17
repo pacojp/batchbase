@@ -4,9 +4,9 @@
 $: << File.dirname(__FILE__)
 require 'test_helper'
 
-require 'batch'
+require 'batch_by_hand'
 
-b = Batch.new
+b = BatchByHand.new
 b.set_signal_observer(:receive_signal)
 b.proceed
 

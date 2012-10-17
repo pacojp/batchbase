@@ -9,7 +9,7 @@ class BatchTooLong
         set_signal_observer(:receive_signal)
       end
     end
-    @shutdown = false
+    #@shutdown = false
     execute(opt) do
       100.times do
         sleep 1
@@ -19,6 +19,7 @@ class BatchTooLong
   end
 
   def receive_signal(sig)
+    #File.write('/tmp/.batchbase.batch_too_long.receive_signal.dat',"#{sig}")
     @shutdown = true
   end
 

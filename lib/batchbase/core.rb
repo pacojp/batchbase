@@ -11,10 +11,11 @@ module Batchbase
     SIGNALS = [ :QUIT, :INT, :TERM, :USR1, :USR2, :HUP ]
     #SIGNALS = [ :QUIT, :INT, :TERM ]
 
-    DOUBLE_PROCESS_CHECK__OK            =  1
-    DOUBLE_PROCESS_CHECK__AUTO_RECOVERD =  2
-    DOUBLE_PROCESS_CHECK__NG            =  0
-    DOUBLE_PROCESS_CHECK__STILL_RUNNING = -1
+    DOUBLE_PROCESS_CHECK__OK                =  1
+    DOUBLE_PROCESS_CHECK__AUTO_RECOVERD     =  2
+    DOUBLE_PROCESS_CHECK__NG                =  0
+    DOUBLE_PROCESS_CHECK__STILL_RUNNING     = -1
+    DOUBLE_PROCESS_CHECK__SAME_PROCESS_NAME =  3
 
     def option_parser
       @__option_parser ||= OptionParser.new
@@ -82,6 +83,7 @@ module Batchbase
     #   :auto_recover         初期値 false
     #
     def execute(options={},&process)
+      result = nil
       begin
         init
         logger.info  "start script(#{pg_path})"
@@ -93,11 +95,13 @@ module Batchbase
           if result == DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
             logger.warn "lock file still exists[pid=#{env[:old_pid_from_pid_file]}:file=#{pid_file}],but process does not found.Auto_recover enabled.so process continues"
           end
-          execute_inner(&process)
+          result = execute_inner(&process)
         when DOUBLE_PROCESS_CHECK__NG
           logger.error "lock file still exists[pid=#{env[:old_pid_from_pid_file]}:file=#{pid_file}],but process does not found.Auto_recover disabled.so process can not continue"
         when DOUBLE_PROCESS_CHECK__STILL_RUNNING
           logger.warn "pid:#{env[:old_pid_from_pid_file]} still running"
+        when DOUBLE_PROCESS_CHECK__SAME_PROCESS_NAME
+          logger.warn "process_name:#{env[:process_name]} still exists"
         else
           raise 'must not happen'
         end
@@ -107,6 +111,7 @@ module Batchbase
         release
         logger.info "finish script (%1.3fsec)" % (Time.now - @__script_started_at)
       end
+      result
     end
 
     module ClassMethods
@@ -166,6 +171,7 @@ module Batchbase
       env[:daemonize]            = options[:daemonize]
       env[:daemonize]            = false if env[:daemonize] == nil
       env[:pid_file]             ||= "/tmp/.#{env[:pg_name]}.#{Digest::MD5.hexdigest(pg_path)}.pid"
+      env[:process_name]         = options[:process_name] if options[:process_name]
 
       opts = option_parser
 
@@ -177,6 +183,13 @@ module Batchbase
 
       opts.on("-d", "--daemonize") do
         env[:daemonize] = true
+      end
+
+      opts.on("-p", "--process_name name",
+        String,"specifies the process name(it work with double process check)",
+        "default: nil") do |v|
+        env[:process_name] = v.clone.strip
+        $0 = v.clone.strip
       end
 
       opts.on("-h","--help","show this help message.") { $stderr.puts opts; exit }
@@ -217,6 +230,15 @@ module Batchbase
             else
               env[:double_process_check_problem] = true
               return DOUBLE_PROCESS_CHECK__NG
+            end
+          end
+        end
+
+        if env[:process_name]
+          Sys::ProcTable.ps do |other_process|
+            if other_process.cmdline.strip == env[:process_name] && $$ != other_process.pid
+              env[:double_process_check_problem] = true
+              return DOUBLE_PROCESS_CHECK__SAME_PROCESS_NAME
             end
           end
         end
