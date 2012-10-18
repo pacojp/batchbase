@@ -16,6 +16,7 @@ class TestBatchbase < Test::Unit::TestCase
 
   PID_FILE_FORCE = '/tmp/.batchbase_test.pid'
   PID_FILE_DAEMONIZE_TEST = '/tmp/.batchbase_daemonize_test.pid'
+  LOG_FILE       = '/tmp/batchbase_test.log'
   PROCESS_NAME   = 'batchbase_test_hogehoge'
 
   def setup
@@ -24,6 +25,7 @@ class TestBatchbase < Test::Unit::TestCase
     delete_file(PID_FILE_DAEMONIZE_TEST)
     delete_file(Batch::TEST_FILE) # HACKME したとまとめる、、、
     delete_file(FILE_PG_TEST)
+    delete_file(LOG_FILE)
   end
 
   def new_batch_instance
@@ -383,6 +385,25 @@ class TestBatchbase < Test::Unit::TestCase
     sleep 3
   end
 
+  def test_with_log
+    assert_equal false, File.exists?(LOG_FILE)
+    cmd = "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE} --log #{LOG_FILE} &"
+    system cmd
+    sleep 1
+    assert_equal true, File.exists?(LOG_FILE)
+    system "kill `cat #{PID_FILE_FORCE}`"
+    sleep 1
+  end
+
+  def test_without_log
+    assert_equal false, File.exists?(LOG_FILE)
+    cmd = "ruby ./test/pg_for_test.rb --lockfile #{PID_FILE_FORCE}&"
+    system cmd
+    sleep 1
+    assert_equal false, File.exists?(LOG_FILE)
+    system "kill `cat #{PID_FILE_FORCE}`"
+    sleep 1
+  end
   #
   # HACKME
   # executeを読んだ際のメッセージ文言等でエラーが出る場合のフック、、、

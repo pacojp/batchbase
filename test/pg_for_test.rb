@@ -9,9 +9,19 @@ include Batchbase::Core
 
 create_logger('/dev/null')
 
+def receive_signal(sig)
+  logger.info("receive signal #{sig}")
+  @shutdown = true
+end
+
 result = execute do
-  sleep 4
-  Batch::DOUBLE_PROCESS_CHECK__OK
+  set_signal_observer(:receive_signal)
+  4.times do
+    logger.info('logged by pg_for_test')
+    sleep 1
+    break if @shutdown
+  end
+  999999
 end
 
 File.write(FILE_PG_TEST,result.to_s)

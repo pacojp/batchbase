@@ -86,9 +86,9 @@ module Batchbase
       result = nil
       begin
         init
+        parse_options(options,ARGV)
         logger.info  "start script(#{pg_path})"
         logger.debug "caller=#{caller}"
-        parse_options(options,ARGV)
         result = double_process_check_and_create_pid_file
         case result
         when DOUBLE_PROCESS_CHECK__OK,DOUBLE_PROCESS_CHECK__AUTO_RECOVERD
@@ -172,6 +172,7 @@ module Batchbase
       env[:daemonize]            = false if env[:daemonize] == nil
       env[:pid_file]             ||= "/tmp/.#{env[:pg_name]}.#{Digest::MD5.hexdigest(pg_path)}.pid"
       env[:process_name]         = options[:process_name] if options[:process_name]
+      env[:log]                  = options[:log] if options[:log]
 
       opts = option_parser
 
@@ -197,6 +198,10 @@ module Batchbase
       opts.on("--lockfile LOCK_FILE_PATH","set lock file path") do |v|
         double_process_check = true
         env[:pid_file] = v
+      end
+      opts.on("--log LOG_FILE_PATH","set log file path") do |v|
+        env[:log] = v
+        create_logger(v)
       end
       opts.on("--double_process_check_off","disable double process check") do |v|
         env[:double_process_check] = false
