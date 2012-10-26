@@ -8,6 +8,7 @@ require 'Fileutils'
 include Batchbase::Core
 
 create_logger('/dev/null')
+#create_logger(STDOUT)
 
 def receive_signal(sig)
   logger.info("receive signal #{sig}")

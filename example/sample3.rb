@@ -16,7 +16,8 @@ end
 
 set_signal_observer(:receive_signal)
 
-execute(:daemonize=>true) do
+# :process_nameを指定するとps時の名前を指定できる
+execute(:daemonize=>true,:process_name=>'batchbase_sample3') do
   logger.info 'test'
   logger.info env[:pid_file]
   3600.times do

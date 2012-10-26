@@ -3,20 +3,30 @@ require 'batchbase'
 
 # usage type 2
 
+DEFAULT_TEXT      = 'without test'
+DEFAULT_TEXT_TEST = 'test'
+
 class Batch
   include Batchbase::Core
 
-  def proceed
+  def initialize
+    # 初期値設定
+    env_defaults = {:favorite_number=>1}
+    # オプションパーサーの設定追加
     opts = self.option_parser
-    options_arg = {:favorite_number=>777} #初期値を設定
     opts.on("-f", "--favorite_number=value",
            Integer,"favo"
             ) do |v|
       env[:favorite_number] = v
     end
+    # ここでオプションをパースしておく
+    parse_options(env_defaults)
+  end
 
-    execute(options_arg) do
+  def proceed(text)
+    execute do
       logger.info env.inspect
+      logger.info text
       if env[:favorite_number]
         logger.info env[:favorite_number].to_s
       else
@@ -28,4 +38,10 @@ class Batch
 end
 
 b = Batch.new
-b.proceed
+case b.env[:environment]
+when 'test'
+  b.proceed(DEFAULT_TEXT_TEST)
+else
+  b.proceed(DEFAULT_TEXT)
+end
+

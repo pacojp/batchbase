@@ -41,14 +41,14 @@ class TestBatchbase < Test::Unit::TestCase
   def pid_file
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{},[])
+    b.send(:parse_options_inner,{},[])
     b.env[:pid_file]
   end
 
   def test_pid_file
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{},[])
+    b.send(:parse_options_inner,{},[])
     b.send(:double_process_check_and_create_pid_file)
     assert_equal true,File.exists?(b.env[:pid_file])
     b.send(:release)
@@ -59,7 +59,7 @@ class TestBatchbase < Test::Unit::TestCase
     FileUtils.touch(pid_file) # すでにpid_fileがあるとして
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{},[])
+    b.send(:parse_options_inner,{},[])
     result = b.send(:double_process_check_and_create_pid_file)
     assert_equal Batchbase::Core::DOUBLE_PROCESS_CHECK__NG,result
     File.delete(pid_file)
@@ -69,7 +69,7 @@ class TestBatchbase < Test::Unit::TestCase
     FileUtils.touch(pid_file) # すでにpid_fileがあるとして
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{:double_process_check=>false},[])
+    b.send(:parse_options_inner,{:double_process_check=>false},[])
     result = b.send(:double_process_check_and_create_pid_file)
     assert_equal Batchbase::Core::DOUBLE_PROCESS_CHECK__OK,result
     File.delete(pid_file)
@@ -79,7 +79,7 @@ class TestBatchbase < Test::Unit::TestCase
     FileUtils.touch(pid_file) # すでにpid_fileがあるとして
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{:auto_recover=>true},[])
+    b.send(:parse_options_inner,{:auto_recover=>true},[])
     result = b.send(:double_process_check_and_create_pid_file)
     assert_equal Batchbase::Core::DOUBLE_PROCESS_CHECK__AUTO_RECOVER,result
     assert_equal true,File.exists?(b.env[:pid_file]) # pid_fileは存在していないとだめ
@@ -89,7 +89,7 @@ class TestBatchbase < Test::Unit::TestCase
   def test_auto_recover
     b = new_batch_instance
     b.send(:init)
-    b.send(:parse_options,{},[:auto_recover=>true])
+    b.send(:parse_options_inner,{},[:auto_recover=>true])
     b.send(:double_process_check_and_create_pid_file)
     assert_equal true,File.exists?(b.env[:pid_file])
     b.send(:release)
@@ -101,7 +101,7 @@ class TestBatchbase < Test::Unit::TestCase
     b = new_batch_instance
     b.send(:init)
     argv = []
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal b.env[:environment],'development'
     assert_equal b.env[:double_process_check],true
     assert_equal b.env[:auto_recover],false
@@ -110,7 +110,7 @@ class TestBatchbase < Test::Unit::TestCase
     b = new_batch_instance
     b.send(:init)
     argv = ['-e','test','--auto_recover']
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal b.env[:environment],'test'
     assert_equal b.env[:double_process_check],true
     assert_equal b.env[:auto_recover],true
@@ -118,14 +118,14 @@ class TestBatchbase < Test::Unit::TestCase
     b = new_batch_instance
     b.send(:init)
     argv = ['--double_process_check_off']
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal b.env[:double_process_check],false
 
     # オートリカバリー入れたらダブルプロセスチェックは強制ON
     b = new_batch_instance
     b.send(:init)
     argv = ['-e','test','--auto_recover','double_process_check_off']
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal b.env[:environment],'test'
     assert_equal b.env[:double_process_check],true
     assert_equal b.env[:auto_recover],true
@@ -133,13 +133,13 @@ class TestBatchbase < Test::Unit::TestCase
     b = new_batch_instance
     b.send(:init)
     argv = ['--lockfile','/tmp/.lockfile_test']
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal b.env[:pid_file],'/tmp/.lockfile_test'
 
     b = new_batch_instance
     b.send(:init)
     argv = ['--lockfile','/tmp/.lockfile_test']
-    b.send(:parse_options,{:jojo=>123},argv)
+    b.send(:parse_options_inner,{:jojo=>123},argv)
     assert_equal b.env[:pid_file],'/tmp/.lockfile_test'
     assert_equal b.env[:jojo],123
   end
@@ -150,7 +150,7 @@ class TestBatchbase < Test::Unit::TestCase
     b.send(:init)
     argv = []
     options = {:double_process_check=>false,:environment=>'test'}
-    b.send(:parse_options,options,argv)
+    b.send(:parse_options_inner,options,argv)
     assert_equal b.env[:environment],'test'
     assert_equal b.env[:double_process_check],false
     assert_equal b.env[:auto_recover],false
@@ -161,7 +161,7 @@ class TestBatchbase < Test::Unit::TestCase
     b.send(:init)
     argv = []
     options = {:double_process_check=>false,:auto_recover=>true}
-    b.send(:parse_options,options,argv)
+    b.send(:parse_options_inner,options,argv)
     assert_equal b.env[:double_process_check],true
     assert_equal b.env[:auto_recover],true
 
@@ -169,7 +169,7 @@ class TestBatchbase < Test::Unit::TestCase
     b.send(:init)
     argv = []
     options = {:pid_file=>'/tmp/.lock_test'}
-    b.send(:parse_options,options,argv)
+    b.send(:parse_options_inner,options,argv)
     assert_equal b.env[:pid_file],'/tmp/.lock_test'
 
     # ミックスならARGVの指定の方を優先
@@ -177,7 +177,7 @@ class TestBatchbase < Test::Unit::TestCase
     b.send(:init)
     argv = ['--lockfile','/tmp/.lllock','--auto_recover']
     options = {:pid_file=>'/tmp/.lock_test',:auto_recover=>false,:double_process_check=>false}
-    b.send(:parse_options,options,argv)
+    b.send(:parse_options_inner,options,argv)
     assert_equal b.env[:double_process_check],true
     assert_equal b.env[:auto_recover],true
     assert_equal b.env[:pid_file],'/tmp/.lllock'
@@ -194,7 +194,7 @@ class TestBatchbase < Test::Unit::TestCase
 
     b.send(:init)
     argv = ['--favorite_number','11']
-    b.send(:parse_options,{},argv)
+    b.send(:parse_options_inner,{},argv)
     assert_equal 'development',b.env[:environment]
     assert_equal true,b.env[:double_process_check]
     assert_equal false,b.env[:auto_recover]
@@ -312,7 +312,7 @@ class TestBatchbase < Test::Unit::TestCase
 
     b2 = new_batch_instance
     b2.send(:init)
-    b2.send(:parse_options,{:pid_file=>PID_FILE_FORCE},[])
+    b2.send(:parse_options_inner,{:pid_file=>PID_FILE_FORCE},[])
     result = b2.send(:double_process_check_and_create_pid_file)
     assert_equal Batch::DOUBLE_PROCESS_CHECK__STILL_RUNNING,result
     #b2.send(:execute_inner)
@@ -333,7 +333,7 @@ class TestBatchbase < Test::Unit::TestCase
 
     b2 = new_batch_instance
     b2.send(:init)
-    b2.send(:parse_options,{:pid_file=>PID_FILE_FORCE},[])
+    b2.send(:parse_options_inner,{:pid_file=>PID_FILE_FORCE},[])
     result = b2.send(:double_process_check_and_create_pid_file)
     assert_equal Batch::DOUBLE_PROCESS_CHECK__STILL_RUNNING,result
     #b2.send(:execute_inner)
@@ -345,7 +345,7 @@ class TestBatchbase < Test::Unit::TestCase
     File.delete(PID_FILE_FORCE)
     b2 = new_batch_instance
     b2.send(:init)
-    b2.send(:parse_options,{:pid_file=>PID_FILE_FORCE},[])
+    b2.send(:parse_options_inner,{:pid_file=>PID_FILE_FORCE},[])
     result = b2.send(:double_process_check_and_create_pid_file)
     assert_equal Batch::DOUBLE_PROCESS_CHECK__OK,result
     #b2.send(:execute_inner)
@@ -381,7 +381,7 @@ class TestBatchbase < Test::Unit::TestCase
   def test_double_process_check_with_process_name
     cmd = "ruby ./test/pg_for_test.rb --process_name hogehogemorimoribatchbase --lockfile #{PID_FILE_FORCE} &"
     system cmd
-    sleep 0.5
+    sleep 0.7
     assert_equal false,File.exists?(FILE_PG_TEST)
     delete_file(PID_FILE_FORCE)
     sleep 0.5

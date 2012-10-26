@@ -72,7 +72,7 @@ module Batchbase
     #
     # 内部的には
     #   init
-    #   parse_options
+    #   parse_options_inner
     #   execute_inner
     #   release
     # の順にコールしてます
@@ -86,7 +86,7 @@ module Batchbase
       result = nil
       begin
         init
-        parse_options(options,ARGV)
+        parse_options_inner(options,ARGV)
         logger.info  "start script(#{pg_path})"
         logger.debug "caller=#{caller}"
         result = double_process_check_and_create_pid_file
@@ -121,6 +121,9 @@ module Batchbase
         process = Sys::ProcTable.ps(pid)
         process != nil && process.state == 'run'
       end
+
+      def env
+      end
     end
 
     def self.included(mod)
@@ -145,12 +148,17 @@ module Batchbase
       @__signal_observers << method_name
     end
 
+    def parse_options(options)
+      parse_options_inner(options,ARGV)
+    end
+
     private
 
     def init
       SIGNALS.each { |sig| trap(sig){r_signal(sig)} }
       @__script_started_at = Time.now
-      raise 'already inited' if @__init
+      #raise 'already inited' if @__init
+      return if @__init
       @__init   = true
       env[:pid] = $$
       if File.expand_path(caller[0]) =~ /(.*):\d*:in `.*?'\z/
@@ -160,7 +168,10 @@ module Batchbase
       end
     end
 
-    def parse_options(options,argv)
+    def parse_options_inner(options,argv)
+      init
+      return if @__parse_option
+      @__parse_option = true
       options[:double_process_check] = true if options[:double_process_check].nil?
       options[:auto_recover] ||= false
       options[:environment]  ||= 'development'
@@ -187,7 +198,6 @@ module Batchbase
         String,"specifies the process name(it work with double process check)",
         "default: nil") do |v|
         env[:process_name] = v.clone.strip
-        $0 = v.clone.strip
       end
 
       opts.on("-h","--help","show this help message.") { $stderr.puts opts; exit }
@@ -208,6 +218,10 @@ module Batchbase
       end
 
       opts.parse!(argv)
+
+      if env[:process_name]
+        $0 = env[:process_name]
+      end
 
       if env[:auto_recover] == true
         env[:double_process_check] = true
