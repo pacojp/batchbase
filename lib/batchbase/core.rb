@@ -161,18 +161,15 @@ module Batchbase
     end
 
     def parse_options(options,argv)
-      env[:double_process_check] = options[:double_process_check]
-      env[:double_process_check] = true if env[:double_process_check] == nil
-      env[:auto_recover]         = options[:auto_recover]
-      env[:auto_recover]         = false if env[:auto_recover] == nil
-      env[:environment]          = options[:environment] ||= 'development'
-      env[:pg_name]              = File.basename(pg_path)
-      env[:pid_file]             = options[:pid_file]
-      env[:daemonize]            = options[:daemonize]
-      env[:daemonize]            = false if env[:daemonize] == nil
-      env[:pid_file]             ||= "/tmp/.#{env[:pg_name]}.#{Digest::MD5.hexdigest(pg_path)}.pid"
-      env[:process_name]         = options[:process_name] if options[:process_name]
-      env[:log]                  = options[:log] if options[:log]
+      options[:double_process_check] = true if options[:double_process_check].nil?
+      options[:auto_recover] ||= false
+      options[:environment]  ||= 'development'
+      options[:pg_name]      ||= File.basename(pg_path)
+      options[:pid_file]     ||= "/tmp/.#{env[:pg_name]}.#{Digest::MD5.hexdigest(pg_path)}.pid"
+      options[:daemonize]    ||= false
+      options.each do |k,v|
+        env[k] = v
+      end
 
       opts = option_parser
 

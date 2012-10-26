@@ -135,6 +135,13 @@ class TestBatchbase < Test::Unit::TestCase
     argv = ['--lockfile','/tmp/.lockfile_test']
     b.send(:parse_options,{},argv)
     assert_equal b.env[:pid_file],'/tmp/.lockfile_test'
+
+    b = new_batch_instance
+    b.send(:init)
+    argv = ['--lockfile','/tmp/.lockfile_test']
+    b.send(:parse_options,{:jojo=>123},argv)
+    assert_equal b.env[:pid_file],'/tmp/.lockfile_test'
+    assert_equal b.env[:jojo],123
   end
 
   def test_options
