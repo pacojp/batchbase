@@ -148,8 +148,8 @@ module Batchbase
       @__signal_observers << method_name
     end
 
-    def parse_options(options)
-      parse_options_inner(options,ARGV)
+    def parse_options(options,argv=ARGV)
+      parse_options_inner(options,argv)
     end
 
     private
