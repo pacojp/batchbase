@@ -136,7 +136,7 @@ module Batchbase
       @__signal_observers ||= []
     end
 
-    def set_signal_observer(method_name)
+    def set_signal_observer(method_name,object=self)
       @__signal_observers ||= []
       case method_name
       when String
@@ -145,7 +145,7 @@ module Batchbase
       else
         raise ArgumentError.new('method_name must be String or Symbol')
       end
-      @__signal_observers << method_name
+      @__signal_observers << [object,method_name]
     end
 
     def parse_options(options,argv=ARGV)
@@ -277,9 +277,9 @@ module Batchbase
     #
     def r_signal(signal)
       sent_signal = false
-      signal_observers.each do |method_name|
+      signal_observers.each do |ar|
         begin
-          self.send method_name,signal
+          ar[0].send ar[1],signal
           sent_signal = true
         rescue => e
           message = "signal #{signal} received. but can not call '#{method_name}'"

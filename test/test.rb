@@ -11,6 +11,7 @@ require 'Fileutils'
 
 require 'batch'
 require 'batch_too_long'
+require 'batch_signal_other_class'
 
 class TestBatchbase < Test::Unit::TestCase
 
@@ -18,6 +19,7 @@ class TestBatchbase < Test::Unit::TestCase
   PID_FILE_DAEMONIZE_TEST = '/tmp/.batchbase_daemonize_test.pid'
   LOG_FILE       = '/tmp/batchbase_test.log'
   PROCESS_NAME   = 'batchbase_test_hogehoge'
+  RECEIVE_SIGNAL_FILE = '/tmp/.batchbase_test.receive_signal.pid'
 
   def setup
     delete_file(pid_file)
@@ -26,6 +28,7 @@ class TestBatchbase < Test::Unit::TestCase
     delete_file(Batch::TEST_FILE) # HACKME したとまとめる、、、
     delete_file(FILE_PG_TEST)
     delete_file(LOG_FILE)
+    delete_file(RECEIVE_SIGNAL_FILE)
   end
 
   def new_batch_instance
@@ -252,6 +255,23 @@ class TestBatchbase < Test::Unit::TestCase
     sleep 3
     assert_equal false,Batch.is_there_process(pid)
     assert_equal false,File.exists?(PID_FILE_FORCE)
+  end
+
+  def test_signal_other_obj
+    assert_equal false,File.exists?(PID_FILE_FORCE)
+    assert_equal false,File.exists?(RECEIVE_SIGNAL_FILE)
+    pid = fork do
+      b = BatchSignalOtherClass.new
+      b.skip_logging
+      b.proceed(:pid_file=>PID_FILE_FORCE,:not_set_observer=>true)
+    end
+    sleep 1
+    assert_equal false,File.exists?(RECEIVE_SIGNAL_FILE)
+    pid_by_file = File.read(PID_FILE_FORCE).chomp.to_i
+    assert_equal pid,pid_by_file
+    `kill #{pid}`
+    sleep 1
+    assert_equal true,File.exists?(RECEIVE_SIGNAL_FILE)
   end
 
   #
